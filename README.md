@@ -1,2 +1,2 @@
 # gping
-ping trying to guess what you want..
+guessing ping - trying to guess what you want..
