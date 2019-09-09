@@ -48,7 +48,7 @@ for ($i = 0, $count = count($args); $i < $count; ++ $i) {
                 $port = trim($args[$i + 1]);
                 if (false !== ($port = filter_var($port, FILTER_VALIDATE_INT))) {
                     portManager($port, 3, $arg . " " . $port);
-                    ++$i;
+                    ++ $i;
                 }
             }
         }
@@ -132,19 +132,46 @@ function runtime(): int
     return (int) (microtime(true) - $first);
 }
 
-function pingPort(string $host, int $port, int $timeout = 2, float &$response_time_ms = null, string &$errstr = null): bool
+function pingPort(string $host, int $port, int $timeout_seconds = 2, float &$response_time_ms = null, string &$errstr = null): bool
 {
     $errstr = "";
     if ($port < 0) {
         throw new LogicException('port<0');
     }
-    if ($timeout < 0) {
+    if ($timeout_seconds < 0) {
         throw new LogicException('port<0');
     }
     // magic number for ICMP Ping (which doesn't really have a number because the icmp protocol)
     if ($port === 0) {
         // ping -c 1 -W 2 -q 127.0.0.1
-        $cmd = 'ping -c 1 -W ' . ((int) $timeout) . ' -q ' . escapeshellarg((string) $host) . " 2>&1";
+        static $ping_cmd_precomputed = null;
+        static $ms_multiplier = null;
+        if ($ping_cmd_precomputed === null) {
+            $help = shell_exec("ping --help 2>&1");
+            if (false !== strpos($help, "--count=")) {
+                // cygwin ping
+                // TODO: untested!!!
+                // $ping_cmd_precomputed="ping --count=1 -W @timeout@ -q @host@";
+                // $ms_multiplier=1;// i think??? idk
+                throw new \LogicException("FIXME: cygwin ping is untested!!");
+            } elseif (false !== strpos($help, "[-c count]")) {
+                // gnu ping
+                $ping_cmd_precomputed = "ping -c 1 -W @timeout@ -q @host@";
+                $ms_multiplier = 1;
+            } elseif (false !== strpos($help, "-n count")) {
+                // windows ping
+                $ms_multiplier = 1000;
+                $ping_cmd_precomputed = "ping -n 1 -w @timeout@ @host@";
+            } else {
+                throw new \LogicException('failed to deduce ping implementation! please send a bugreport (supported: GNU ping, (untested: Cygwin ping), Windows ping)');
+            }
+            $ping_cmd_precomputed .= " 2>&1";
+        }
+        $cmd = strtr($ping_cmd_precomputed, array(
+            '@host@' => escapeshellarg($host),
+            '@timeout@' => escapeshellarg((string) ($timeout_seconds * $ms_multiplier))
+        ));
+        // $cmd = 'ping -c 1 -W ' . ((int) $timeout_seconds) . ' -q ' . escapeshellarg((string) $host) . " 2>&1";
         $ret = null;
         $output = [];
         $start = microtime(true);
@@ -157,7 +184,7 @@ function pingPort(string $host, int $port, int $timeout = 2, float &$response_ti
         $errstr = "";
         $errno = 0;
         $start = microtime(true);
-        $sock = @fsockopen($host, $port, $errno, $errstr, $timeout);
+        $sock = @fsockopen($host, $port, $errno, $errstr, $timeout_seconds);
         $end = microtime(true);
         $response_time_ms = $end - $start;
         if (! $sock) {
