@@ -18,3 +18,5 @@ sudo ln -s /usr/local/bin/gping.php /usr/local/bin/gping;
 sudo chmod 0555 /usr/local/bin/gping.php;
 sudo chmod 0555 /usr/local/bin/gping;
 ```
+
+requirements: php-cli >= 7.0.0
