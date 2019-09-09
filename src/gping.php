@@ -37,7 +37,7 @@ for ($i = 0, $count = count($args); $i < $count; ++ $i) {
         $why = (isset($info['port']) ? $arg : 'ftp');
         $host = $info['host'];
         portManager($port, 2, $why);
-    } elseif ($arg === "-p" || $arg === "--port" || $arg === "port") {
+    } elseif ($arg === "-p" || starts_with($arg, '--port') || starts_with($arg, "port")) {
         if (false !== strpos($arg, "=")) {
             $port = trim(explode("=", $arg, 2)[1]);
             if (false !== ($port = filter_var($port, FILTER_VALIDATE_INT))) {
@@ -65,7 +65,6 @@ for ($i = 0, $count = count($args); $i < $count; ++ $i) {
             // retry by trimming ssh foo@bar.com to just "bar.com" ...
             $args[$i] = trim(explode("@", $arg, 2)[1]);
             -- $i;
-            continue;
         }
     }
 }
@@ -91,35 +90,25 @@ echo " time between pings: {$time_between_pings}s..";
 $first = pingPort($host, portManager()->port, $timeout, $response_time, $errstr);
 if ($first) {
     echo ". success!\n";
-    for (;;) {
-        $starttime = microtime(true);
-        if (pingPort($host, portManager()->port, $timeout, $response_time, $errstr)) {
-            echo runtime() . ": success! " . number_format($response_time, 3) . "s\n";
-        } else {
-            echo runtime() . ": fail! \"{$errstr}\" " . number_format($response_time, 3) . "s\n";
-        }
-        $remaining = $time_between_pings - (microtime(true) - $starttime);
-        if ($remaining > 0.001) {
-            @time_sleep_until(microtime(true) + $remaining);
-        }
-    }
 } else {
     echo "first ping failed, will start beeping on success..\n";
-    for (;;) {
-        $starttime = microtime(true);
-        if (pingPort($host, portManager()->port, $timeout, $response_time, $errstr)) {
-            echo runtime() . ": success! " . number_format($response_time, 3) . "s\n";
+}
+for (;;) {
+    $starttime = microtime(true);
+    if (pingPort($host, portManager()->port, $timeout, $response_time, $errstr)) {
+        echo runtime() . ": success! " . number_format($response_time, 3) . "s\n";
+        if (! $first) {
             for ($i = 0; $i < 5; ++ $i) {
                 cli_beep();
                 sleep(1);
             }
-        } else {
-            echo runtime() . ": fail! \"{$errstr}\" " . number_format($response_time, 3) . "s\n";
         }
-        $remaining = $time_between_pings - (microtime(true) - $starttime);
-        if ($remaining > 0.001) {
-            @time_sleep_until(microtime(true) + $remaining);
-        }
+    } else {
+        echo runtime() . ": fail! \"{$errstr}\" " . number_format($response_time, 3) . "s\n";
+    }
+    $remaining = $time_between_pings - (microtime(true) - $starttime);
+    if ($remaining > 0.001) {
+        @time_sleep_until(microtime(true) + $remaining);
     }
 }
 
