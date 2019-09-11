@@ -12,11 +12,12 @@ if(count($args)<1){
 
 example installation: 
 ```
-sudo rm -rfv /usr/local/bin/gping.php /usr/local/bin/gping;
-sudo wget -O /usr/local/bin/gping.php https://raw.githubusercontent.com/divinity76/gping/master/src/gping.php;
-sudo ln -s /usr/local/bin/gping.php /usr/local/bin/gping;
-sudo chmod 0555 /usr/local/bin/gping.php;
-sudo chmod 0555 /usr/local/bin/gping;
+# probably need to execute as root (unless you're on Cygwin)
+rm -rfv /usr/local/bin/gping.php /usr/local/bin/gping;
+wget -O /usr/local/bin/gping.php https://raw.githubusercontent.com/divinity76/gping/master/src/gping.php;
+ln -s /usr/local/bin/gping.php /usr/local/bin/gping;
+chmod 0555 /usr/local/bin/gping.php;
+chmod 0555 /usr/local/bin/gping;
 ```
 
 requirements: php-cli >= 7.0.0
