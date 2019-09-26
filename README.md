@@ -30,7 +30,7 @@ will ping "foo.net" port 22. time between pings: 2s..first ping failed, will sta
 ```
 
 
-example installation: 
+## installation: 
 ```
 # probably need to execute as root (unless you're on Cygwin)
 rm -rfv /usr/local/bin/gping.php /usr/local/bin/gping;
@@ -40,4 +40,5 @@ chmod 0555 /usr/local/bin/gping.php;
 chmod 0555 /usr/local/bin/gping;
 ```
 
-requirements: php-cli >= 7.0.0
+## requirements
+php-cli >= 7.0.0
