@@ -19,6 +19,8 @@ for ($i = 0, $count = count($args); $i < $count; ++ $i) {
     $arg = strtolower(trim($args[$i]));
     if (starts_with($arg, "ssh")) {
         portManager(22, 2, "ssh");
+    }elseif (starts_with($arg, "mosh")) {
+        portManager(22, 2, "mosh");
     } elseif (starts_with($arg, "https")) {
         $info = parse_url($arg);
         $port = $info['port'] ?? 443;
