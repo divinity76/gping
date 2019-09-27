@@ -14,12 +14,56 @@ if (count($args) < 1) {
     return 1;
 }
 $host = null;
-
+$parsing_gping_arguments = true;
+$error_timeout = null;
 for ($i = 0, $count = count($args); $i < $count; ++ $i) {
     $arg = strtolower(trim($args[$i]));
+    if (strlen($arg) === 0) {
+        continue;
+    }
+    if ($parsing_gping_arguments) {
+        if ($arg[0] !== "-") {
+            $parsing_gping_arguments = false;
+        } else {
+            $tmp = explode("=", $arg, 2);
+            if (count($tmp) !== 2) {
+                $parsing_gping_arguments = false;
+            } else {
+                if ($tmp[0] === "-max") {
+                    // gping -max=5m aka 5 minutes.. or -max=5 seconds..
+                    $tmp = $tmp[1];
+                    if (! is_numeric($tmp[- 1])) {
+                        $tmp_modifier = $tmp[- 1];
+                        $tmp = substr($tmp, 0, - 1);
+                        if ($tmp_modifier === "m") {
+                            $tmp_modifier = 60;
+                        } elseif ($tmp_modifier === "h") {
+                            $tmp_modifier = 3600;
+                        } else {
+                            fprintf(STDERR, "%s", "Warning: could not understand time modifier in: \"{$arg}\" - ignoring max...\n");
+                            continue;
+                        }
+                    } else {
+                        $tmp_modifier = 1;
+                    }
+                    if (false === ($tmp = filter_var($tmp, FILTER_VALIDATE_FLOAT))) {
+                        fprintf(STDERR, "%s", "Warning: could not understand max argument: \"{$arg}\" - ignoring max...\n");
+                        continue;
+                    }
+                    // finally done parsing -max=X
+                    $tmp *= $tmp_modifier;
+                    $error_timeout = (int) (time() + $tmp);
+                    continue;
+                } else {
+                    fprintf(STDERR, "%s", "Warning: argument \"{$arg}\" looks like a gping argument, but i did not understand it... treating as normal argument!\n");
+                }
+            }
+        }
+    }
+    $parsing_gping_arguments = false;
     if (starts_with($arg, "ssh")) {
         portManager(22, 2, "ssh");
-    }elseif (starts_with($arg, "mosh")) {
+    } elseif (starts_with($arg, "mosh")) {
         portManager(22, 2, "mosh");
     } elseif (starts_with($arg, "https")) {
         $info = parse_url($arg);
@@ -91,14 +135,23 @@ if (portManager()->port === 0) {
 echo " time between pings: {$time_between_pings}s..";
 $first = pingPort($host, portManager()->port, $timeout, $response_time, $errstr);
 if ($first) {
-    echo ". success!\n";
+    echo ". first ping success!\n";
+    $error_timeout = null;
 } else {
-    echo "first ping failed, will start beeping on success..\n";
+    echo "first ping failed, will start beeping on success";
+    if ($error_timeout !== null) {
+        echo ", and/or timeout_error " . date(DateTime::ATOM, $error_timeout);
+    }
+    echo ".\n";
 }
 for (;;) {
     $starttime = microtime(true);
     if (pingPort($host, portManager()->port, $timeout, $response_time, $errstr)) {
         echo runtime() . ": success! " . number_format($response_time, 3) . "s\n";
+        if ($error_timeout !== null && time() > $error_timeout) {
+            echo "(error timeout beep)\n";
+            cli_beep();
+        }
         if (! $first) {
             for ($i = 0; $i < 5; ++ $i) {
                 cli_beep();
@@ -107,6 +160,10 @@ for (;;) {
         }
     } else {
         echo runtime() . ": fail! \"{$errstr}\" " . number_format($response_time, 3) . "s\n";
+        if ($error_timeout !== null && time() > $error_timeout) {
+            echo "(error timeout beep)\n";
+            cli_beep();
+        }
     }
     $remaining = $time_between_pings - (microtime(true) - $starttime);
     if ($remaining > 0.001) {
