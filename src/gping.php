@@ -300,12 +300,12 @@ function hhb_init()
     // ini_set("error_prepend_string",'<error>');
     // ini_set("error_append_string",'</error>'.PHP_EOL);
     // ini_set("error_log",__DIR__.DIRECTORY_SEPARATOR.'error_log.php.txt');
-    assert_options(ASSERT_ACTIVE, 1);
-    assert_options(ASSERT_WARNING, 0);
     if(PHP_MAJOR_VERSION < 8) {
         assert_options(ASSERT_QUIET_EVAL, 1);
+        assert_options(ASSERT_ACTIVE, 1);
+        assert_options(ASSERT_WARNING, 0);
+        assert_options(ASSERT_CALLBACK, 'hhb_assert_handler');
     }
-    assert_options(ASSERT_CALLBACK, 'hhb_assert_handler');
 }
 
 function hhb_exception_error_handler($errno, $errstr, $errfile, $errline)
